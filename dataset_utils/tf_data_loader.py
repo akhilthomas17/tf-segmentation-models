@@ -42,6 +42,7 @@ class ImageInputPipeline:
         self._paths_ds = tf.data.Dataset.from_tensor_slices(paths_list)
         self._paths_ds = self._paths_ds.repeat().shuffle(4000)
         self._aug = None
+        self._crop = None
             
     def _augment_img(self, img, mask, height, width):
         if self._aug is None:
@@ -62,6 +63,13 @@ class ImageInputPipeline:
         img, mask = self._pil_to_np(img_pil, mask_pil)
         if augment:
             img, mask = self._augment_img(img, mask, size[0], size[1])
+        else:
+            if self._crop is None:
+                self._crop = A.Compose([A.CenterCrop(height=size[0], width=size[1])])
+            cropped = self._crop(image=img, mask=mask)
+            img = cropped["image"]
+            mask = cropped["mask"]
+
         return np.stack((img,)*3, axis=-1), mask[...,None]
 
     def _pil_to_np(self, img_pil, mask_pil):

@@ -127,7 +127,64 @@ def add_softmax_cross_entropy_loss_for_each_scale(scales_to_logits,
         loss = _div_maybe_zero(total_loss, num_present)
         tf.losses.add_loss(loss)
 
+def add_focal_loss_for_each_scale(scales_to_logits,
+                                  labels,
+                                  num_classes,
+                                  ignore_label,
+                                  alpha=1,
+                                  gamma=2,
+                                  loss_weight=1.0,
+                                  upsample_logits=True,
+                                  scope=None):
+  """
+    Focal loss implementation reference: https://github.com/kornia/kornia/blob/master/kornia/losses/focal.py
+  """
+  if labels is None:
+    raise ValueError('No label for focal loss.')
+  for scale, logits in six.iteritems(scales_to_logits):
+    loss_scope = None
+    if scope:
+      loss_scope = '%s_%s' % (scope, scale)
 
+    if upsample_logits:
+      # Label is not downsampled, and instead we upsample logits.
+      logits = tf.image.resize_bilinear(
+          logits,
+          preprocess_utils.resolve_shape(labels, 4)[1:3],
+          align_corners=True)
+      scaled_labels = labels
+    else:
+      # Label is downsampled to the same size as logits.
+      scaled_labels = tf.image.resize_nearest_neighbor(
+          labels,
+          preprocess_utils.resolve_shape(logits, 4)[1:3],
+          align_corners=True)
+
+    scaled_labels = tf.reshape(scaled_labels, shape=[-1])
+    not_ignore_mask = tf.to_float(tf.not_equal(scaled_labels,
+                                               ignore_label)) * loss_weight
+    one_hot_labels = tf.one_hot(
+        scaled_labels, num_classes, on_value=1.0, off_value=0.0)
+
+    logits = tf.reshape(logits, shape=[-1, num_classes])
+    weights = not_ignore_mask
+    epsilon = 1.e-9
+
+    with tf.name_scope(loss_scope, 'softmax_focal_loss',
+                       [logits, one_hot_labels, weights]):
+      one_hot_labels = tf.stop_gradient(
+          one_hot_labels, name='labels_stop_gradient')
+
+      # Compute softmax over class axis
+      logits_soft = tf.nn.softmax(logits, axis=-1, name="softmax_before_focal_loss") + epsilon
+
+      # compute the actual focal loss
+      weight = tf.pow(tf.subtract(1., logits_soft), gamma)
+      fl = -alpha * tf.multiply(one_hot_labels, tf.multiply(weight, tf.log(logits_soft)))
+      fl = tf.reduce_sum(fl, axis=-1)
+      total_loss = tf.reduce_mean(fl)
+      tf.losses.add_loss(total_loss)
+    
 def get_model_init_fn(train_logdir,
                       tf_initial_checkpoint,
                       initialize_last_layer,

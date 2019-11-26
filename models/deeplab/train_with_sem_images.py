@@ -200,6 +200,10 @@ flags.DEFINE_string('train_split', 'train',
 
 flags.DEFINE_string('dataset_dir', None, 'Where the dataset reside.')
 
+flags.DEFINE_float('alpha_focal_loss', 1.0, 'Parameter alpha for focal loss')
+
+flags.DEFINE_float('gamma_focal_loss', 2.0, 'Parameter gamma for focal loss')
+
 
 def _build_deeplab(iterator, outputs_to_num_classes, ignore_label):
   """Builds a clone of DeepLab.
@@ -242,16 +246,27 @@ def _build_deeplab(iterator, outputs_to_num_classes, ignore_label):
       output_type_dict[model.MERGED_LOGITS_SCOPE], name=common.OUTPUT_TYPE)
 
   for output, num_classes in six.iteritems(outputs_to_num_classes):
-    train_utils.add_softmax_cross_entropy_loss_for_each_scale(
+    train_utils.add_focal_loss_for_each_scale(
         outputs_to_scales_to_logits[output],
         samples[common.LABEL],
         num_classes,
         ignore_label,
         loss_weight=1.0,
+        alpha=FLAGS.alpha_focal_loss,
+        gamma=FLAGS.gamma_focal_loss,
         upsample_logits=FLAGS.upsample_logits,
-        hard_example_mining_step=FLAGS.hard_example_mining_step,
-        top_k_percent_pixels=FLAGS.top_k_percent_pixels,
         scope=output)
+
+    # train_utils.add_softmax_cross_entropy_loss_for_each_scale(
+    #     outputs_to_scales_to_logits[output],
+    #     samples[common.LABEL],
+    #     num_classes,
+    #     ignore_label,
+    #     loss_weight=1.0,
+    #     upsample_logits=FLAGS.upsample_logits,
+    #     hard_example_mining_step=FLAGS.hard_example_mining_step,
+    #     top_k_percent_pixels=FLAGS.top_k_percent_pixels,
+    #     scope=output)
 
     # Log the summary
     _log_summaries(samples[common.IMAGE], samples[common.LABEL], num_classes,
@@ -450,7 +465,7 @@ def main(unused_argv):
           'Training batch size not divisble by number of clones (GPUs).')
       clone_batch_size = FLAGS.train_batch_size // FLAGS.num_clones
       input_pipeline = ImageInputPipeline(train_rel_map, ".tif", base_dir)
-      dataset = input_pipeline._input_fn(size=(256,256), batch_size=FLAGS.train_batch_size, augment=True)
+      dataset = input_pipeline._input_fn(size=(256,256), batch_size=FLAGS.train_batch_size, augment=False)
 
       train_tensor, summary_op = _train_deeplab_model(dataset.make_one_shot_iterator(), 3, 255)
 
