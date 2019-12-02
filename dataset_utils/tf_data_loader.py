@@ -35,12 +35,13 @@ class PathsDictMaker:
 
 
 class ImageInputPipeline:
-    def __init__(self, folder_maps, file_extension=".tif", base_folder=""):
+    def __init__(self, folder_maps, file_extension=".tif", base_folder="", shuffle=True):
         paths_dict_maker = PathsDictMaker(folder_maps, base_folder)
         paths_dicts = paths_dict_maker.make_paths_dicts(file_extension)
         paths_list = list(zip(paths_dicts["images"], paths_dicts["labels"]))
         self._paths_ds = tf.data.Dataset.from_tensor_slices(paths_list)
-        self._paths_ds = self._paths_ds.repeat().shuffle(4000)
+        if shuffle:
+            self._paths_ds = self._paths_ds.repeat().shuffle(4000)
         self._aug = None
         self._crop = None
             
