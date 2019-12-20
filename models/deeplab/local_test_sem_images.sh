@@ -44,7 +44,7 @@ DATASET_DIR="datasets"
 
 # Set up the working directories.
 PASCAL_FOLDER="sem_segmentation"
-EXP_FOLDER="exp/focal_loss_train_from_scratch_overfit"
+EXP_FOLDER="exp/focal_loss_train_from_scratch_overfit_noreg"
 INIT_FOLDER="${WORK_DIR}/${DATASET_DIR}/${PASCAL_FOLDER}/init_models"
 TRAIN_LOGDIR="${WORK_DIR}/${DATASET_DIR}/${PASCAL_FOLDER}/${EXP_FOLDER}/train"
 EVAL_LOGDIR="${WORK_DIR}/${DATASET_DIR}/${PASCAL_FOLDER}/${EXP_FOLDER}/eval"
@@ -86,7 +86,7 @@ python "${WORK_DIR}"/train_with_sem_images.py \
   --dataset_dir="${PASCAL_DATASET}" \
   --save_summaries_images=true \
   --save_summaries_secs=120 \
-  --base_learning_rate=1e-4 \
+  --base_learning_rate=1e-5 \
   --gamma_focal_loss=3.0 \
 
 # Run evaluation. This performs eval over the full val split (1449 images) and

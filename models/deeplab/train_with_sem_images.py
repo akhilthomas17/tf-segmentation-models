@@ -294,11 +294,13 @@ def _tower_loss(iterator, num_of_classes, ignore_label, scope, reuse_variable):
   for loss in losses:
     tf.summary.scalar('Losses/%s' % loss.op.name, loss)
 
-  regularization_loss = tf.losses.get_regularization_loss(scope=scope)
-  tf.summary.scalar('Losses/%s' % regularization_loss.op.name,
-                    regularization_loss)
+  #regularization_loss = tf.losses.get_regularization_loss(scope=scope)
+  
+  #tf.summary.scalar('Losses/%s' % regularization_loss.op.name,
+  #                  regularization_loss)
 
-  total_loss = tf.add_n([tf.add_n(losses), regularization_loss])
+  #total_loss = tf.add_n([tf.add_n(losses), regularization_loss])
+  total_loss = tf.add_n(losses)
   return total_loss
 
 
@@ -430,7 +432,7 @@ def _train_deeplab_model(iterator, num_of_classes, ignore_label):
     update_ops.append(grad_updates)
     update_op = tf.group(*update_ops)
 
-    total_loss = tf.losses.get_total_loss(add_regularization_losses=True)
+    total_loss = tf.losses.get_total_loss(add_regularization_losses=False)
 
     # Print total loss to the terminal.
     # This implementation is mirrored from tf.slim.summaries.
@@ -465,7 +467,7 @@ def main(unused_argv):
           'Training batch size not divisble by number of clones (GPUs).')
       clone_batch_size = FLAGS.train_batch_size // FLAGS.num_clones
       input_pipeline = ImageInputPipeline(train_rel_map, ".tif", base_dir)
-      dataset = input_pipeline._input_fn(size=(256,256), batch_size=FLAGS.train_batch_size, augment=False)
+      dataset = input_pipeline._input_fn(size=(256, 256), batch_size=FLAGS.train_batch_size, augment=False)
 
       train_tensor, summary_op = _train_deeplab_model(dataset.make_one_shot_iterator(), 3, 255)
 

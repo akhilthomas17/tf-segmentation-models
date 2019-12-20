@@ -88,7 +88,11 @@ python "${WORK_DIR}"/train.py \
   --fine_tune_batch_norm=true \
   --tf_initial_checkpoint="${INIT_FOLDER}/deeplabv3_pascal_train_aug/model.ckpt" \
   --train_logdir="${TRAIN_LOGDIR}" \
+  --save_summaries_images=true \
+  --save_summaries_secs=120 \
   --dataset_dir="${PASCAL_DATASET}"
+  
+
 
 # Run evaluation. This performs eval over the full val split (1449 images) and
 # will take a while.
